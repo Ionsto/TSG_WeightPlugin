@@ -7,8 +7,8 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.HashMap;
 
-import net.minecraft.server.v1_6_R3.ItemStack;
-import net.minecraft.server.v1_6_R3.PlayerInventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -23,7 +23,7 @@ import org.yaml.snakeyaml.Yaml;
 public class WeightPlugin extends JavaPlugin implements Listener{
 	float NormalSpeed = 1;
 	float MaxWeight = 1;
-	HashMap<Integer,Float> Weights = new HashMap<Integer,Float>();
+	HashMap<String,Float> Weights = new HashMap<String,Float>();
 	
     @Override
     public void onEnable() {
@@ -38,18 +38,23 @@ public class WeightPlugin extends JavaPlugin implements Listener{
     	SaveYAML();
         // TODO Insert logic to be performed when the plugin is disabled
     } 
-    
-    @EventHandler(priority = EventPriority.LOW)
-    public void whenThePlayerMoves(final PlayerMoveEvent event) {
+    public float ZDiv(float x,float y)
+    {
+    	if(x == 0 || y == 0)
+    	{
+    		return 0;
+    	}
+    	return x/y;
     }
-     
     @EventHandler
-    public void onPlayerJoin(PlayerJoinEvent evt) {
+    public void OnPlayerMove(PlayerMoveEvent evt) {
         Player player = evt.getPlayer(); // The player who joined
-        PlayerInventory inventory = (PlayerInventory) player.getInventory(); // The player's inventory
-        player.setWalkSpeed(NormalSpeed * (1- (MaxWeight/CalculateWeight(inventory)) ));
+        org.bukkit.inventory.PlayerInventory inventory = player.getInventory(); // The player's inventory
+        float speed = NormalSpeed * (1- ZDiv(MaxWeight,CalculateWeight(inventory)));
+        player.setWalkSpeed(speed);
+        System.out.println(speed);
     }
-    public float GetWeightFromList(int tag)
+    public float GetWeightFromList(String tag)
     {
     	float weight = 1;
     	if(!Weights.containsKey(tag))
@@ -62,13 +67,31 @@ public class WeightPlugin extends JavaPlugin implements Listener{
     public float CalculateWeight(PlayerInventory inventory)
     {
     	float Weight = 0;
-    	for(ItemStack armor : inventory.armor)
+    	if(inventory.getArmorContents() != null)
     	{
-    		Weight += Weights.get(armor.id);
+	    	for(ItemStack armor : inventory.getArmorContents())
+	    	{
+	    		if(armor != null)
+	    		{
+	    			if(armor.getItemMeta() != null)
+	    			{
+	    				Weight += GetWeightFromList(armor.getItemMeta().getDisplayName());
+	    			}
+	    		}
+	    	}
     	}
-    	for(ItemStack item : inventory.items)
+    	if(inventory.getContents() != null)
     	{
-    		Weight += GetWeightFromList(item.id) * item.count;
+	    	for(ItemStack item : inventory.getContents())
+	    	{
+	    		if(item != null)
+	    		{
+	    			if(item.getItemMeta() != null)
+	    			{
+	    				Weight += GetWeightFromList(item.getItemMeta().getDisplayName()) * item.getAmount();
+	    			}
+	    		}
+	    	}
     	}
     	return Weight;
     }
@@ -112,7 +135,7 @@ public class WeightPlugin extends JavaPlugin implements Listener{
 	            Yaml yaml = new Yaml();
 	    		weightfile.createNewFile();
 	            FileReader fw = new FileReader(weightfile);
-	           	Weights = (HashMap<Integer, Float>) yaml.load(fw);
+	           	Weights = (HashMap<String, Float>) yaml.load(fw);
 	    	} catch (IOException e) {
 	    	e.printStackTrace();
 	    	}
