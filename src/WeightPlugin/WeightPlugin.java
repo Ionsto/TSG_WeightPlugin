@@ -22,6 +22,7 @@ import org.yaml.snakeyaml.Yaml;
 
 public class WeightPlugin extends JavaPlugin implements Listener{
 	float NormalSpeed = 1;
+	float MaxWeight = 1;
 	HashMap<Integer,Float> Weights = new HashMap<Integer,Float>();
 	
     @Override
@@ -46,13 +47,7 @@ public class WeightPlugin extends JavaPlugin implements Listener{
     public void onPlayerJoin(PlayerJoinEvent evt) {
         Player player = evt.getPlayer(); // The player who joined
         PlayerInventory inventory = (PlayerInventory) player.getInventory(); // The player's inventory
-        player.setWalkSpeed(NormalSpeed * (1 - ));
-        /*ItemStack itemstack = new ItemStack(Material.DIAMOND, 64); // A stack of diamonds
-     
-        if (inventory.contains(itemstack)) {
-            inventory.addItem(itemstack); // Adds a stack of diamonds to the player's inventory
-            player.sendMessage("Welcome! You seem to be reeeally rich, so we gave you some more diamonds!");
-        }*/
+        player.setWalkSpeed(NormalSpeed * (1- (MaxWeight/CalculateWeight(inventory)) ));
     }
     public float GetWeightFromList(int tag)
     {
