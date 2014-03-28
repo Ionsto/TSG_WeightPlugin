@@ -8,6 +8,7 @@ import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.List;
 
+import org.bukkit.inventory.FurnaceRecipe;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.Recipe;
@@ -24,7 +25,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.yaml.snakeyaml.Yaml;
 
 public class WeightPlugin extends JavaPlugin implements Listener{
-	float NormalSpeed = 0.5F;
+	float NormalSpeed = 0.3F;
 	float Inventory = (36 * 64) + 4;//Estimate
 	float Hev = 1;
 	float MaxWeight = Inventory * Hev;
@@ -55,13 +56,12 @@ public class WeightPlugin extends JavaPlugin implements Listener{
     public void OnPlayerMove(PlayerMoveEvent evt) {
         Player player = evt.getPlayer(); // The player who joined
         org.bukkit.inventory.PlayerInventory inventory = player.getInventory(); // The player's inventory
-        System.out.println(CalculateWeight(inventory));
-        float speed = NormalSpeed * (ZDiv(CalculateWeight(inventory),MaxWeight)-1);
-        player.setWalkSpeed(speed);
+        float speed = NormalSpeed * ZDiv(MaxWeight,MaxWeight - (CalculateWeight(inventory)*1.0F));
+        player.setWalkSpeed(Math.min(Math.abs(speed),1));
     }
     public float GetWeight(ItemStack item)
     {
-    	float weight = 1;
+    	float weight = 1F;
     	if(!Weights.containsKey(GetTagFromItem(item)))
     	{
     		float rep = GetWeightFromRecipe(item);
@@ -71,41 +71,58 @@ public class WeightPlugin extends JavaPlugin implements Listener{
     		}
     		Weights.put(GetTagFromItem(item), weight);
     	}
-    	weight = Weights.get(GetTagFromItem(item));
+    	weight = Weights.get(GetTagFromItem(item)).floatValue();
     	if(weight > Hev){Hev = weight;MaxWeight = Inventory * Hev;}
     	return weight;
     }
     public float GetWeightFromRecipe(ItemStack item)
     {
-    	float weight = -1;
-    	List<Recipe> recipes =  this.getServer().getRecipesFor(item);
-    	for(Recipe r : recipes)
+    	float weight = -1F;
+    	if(item != null)
     	{
-    		if(weight == -1){++weight;}
-    		if(r instanceof ShapelessRecipe)
-    		{
-    			for ( ItemStack tems :((ShapelessRecipe)r).getIngredientList())
-    			{
-    				weight += GetWeight(tems) * tems.getAmount();
-    			}
-    		}
-    		if(r instanceof ShapedRecipe)
-    		{
-    			for ( ItemStack tems :((ShapedRecipe)r).getIngredientMap().values())
-    			{
-    				weight += GetWeight(tems) * tems.getAmount();
-    			}
-    		}
+	    	List<Recipe> recipes =  this.getServer().getRecipesFor(item);
+	    	for(Recipe r : recipes)
+	    	{
+	    		if(weight == -1){++weight;}
+	    		if(r instanceof ShapelessRecipe)
+	    		{
+	    			for ( ItemStack tems :((ShapelessRecipe)r).getIngredientList())
+	    			{
+	    				if(tems != null)
+	    				{
+	    					weight += GetWeight(tems) * tems.getAmount() / r.getResult().getAmount();
+	    				}
+	    			}
+	    		}
+	    		if(r instanceof ShapedRecipe)
+	    		{
+	    			for ( ItemStack tems :((ShapedRecipe)r).getIngredientMap().values())
+	    			{
+	    				if(tems != null)
+	    				{
+	    					weight += GetWeight(tems) * tems.getAmount() / r.getResult().getAmount();
+	    				}
+	    			}
+	    		}
+	    		if(r instanceof FurnaceRecipe)
+	    		{
+    				weight += GetWeight(((FurnaceRecipe)r).getInput());
+	    		}
+	    	}
     	}
     	return weight;
     }
     public String GetTagFromItem(ItemStack stack)
     {
-		return stack.getType().name();
+    	if(stack != null)
+    	{
+    		return stack.getType().name();
+    	}
+    	return "";
     }
     public float CalculateWeight(PlayerInventory inventory)
     {
-    	float Weight = 0;
+    	float Weight = 0F;
     	if(inventory.getArmorContents() != null)
     	{
 	    	for(ItemStack armor : inventory.getArmorContents())
@@ -138,27 +155,32 @@ public class WeightPlugin extends JavaPlugin implements Listener{
     	System.out.println("Saving YAML");
         Yaml yaml = new Yaml();
         String output = yaml.dump(Weights);
+        output = output.replace(",", ",\n");
         if(!getDataFolder().exists())
     	{
     		this.getDataFolder().mkdirs();
     	}
-        File weightfile = new File(getDataFolder(), "weightconfig.txt");
-    	if(!weightfile.exists())
-    	{
-	    	try {
-	    		weightfile.createNewFile();
-	            FileWriter fw = new FileWriter(weightfile, true);
-	            
-	            PrintWriter pw = new PrintWriter(fw);
-	             
-	            pw.println(output);
-	             
-	            pw.flush();
-	             
-	            pw.close();
-	    	} catch (IOException e) {
-	    	e.printStackTrace();
-	    	}
+        File weightfile = new File(getDataFolder(), "weightconfig.yml");
+        if(!weightfile.exists())
+        {
+    		try {
+				weightfile.createNewFile();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+    	try {
+            FileWriter fw = new FileWriter(weightfile,false);
+            
+            PrintWriter pw = new PrintWriter(fw);
+            pw.println(output);
+             
+            pw.flush();
+             
+            pw.close();
+    	} catch (IOException e) {
+    	e.printStackTrace();
     	}
     }
     @SuppressWarnings("unchecked")
@@ -169,7 +191,7 @@ public class WeightPlugin extends JavaPlugin implements Listener{
     	{
     		this.getDataFolder().mkdirs();
     	}
-    	File weightfile = new File(getDataFolder(), "data.txt");
+    	File weightfile = new File(getDataFolder(), "weightconfig.yml");
     	if(weightfile.exists())
     	{
 	    	try {
@@ -181,9 +203,24 @@ public class WeightPlugin extends JavaPlugin implements Listener{
 	    	e.printStackTrace();
 	    	}
     	}
-	    for(float weight : Weights.values())
+	    for(int i = 0;i < Weights.size();++i)
 	    {
-	    	if(weight > Hev){Hev = weight;MaxWeight = Inventory * Hev;}
+	    	try{
+		    	float weight = ((Float[])(Weights.values()).toArray())[i].floatValue();
+		    	ItemStack stack = new ItemStack(Enum.valueOf(Material.class, (((String[])(Weights.values()).toArray())[i])));
+		    	//Just recalculate it for eddited changes
+		    	float w = GetWeightFromRecipe(stack);
+		    	if(w != -1)
+		    	{
+		    		Weights.put((((String[])(Weights.values()).toArray())[i]), w);
+		    	}
+		    	if( weight> Hev){Hev = weight;MaxWeight = Inventory * Hev;}
+		    	
+	    	}
+	    	catch(Exception e)
+	    	{
+	    		
+	    	}
 	    }
     }
 }
