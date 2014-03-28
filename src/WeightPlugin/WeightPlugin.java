@@ -25,7 +25,9 @@ import org.yaml.snakeyaml.Yaml;
 
 public class WeightPlugin extends JavaPlugin implements Listener{
 	float NormalSpeed = 0.5F;
-	float MaxWeight = (36 * 64) + 4;
+	float Inventory = (36 * 64) + 4;//Estimate
+	float Hev = 1;
+	float MaxWeight = Inventory * Hev;
 	HashMap<String,Float> Weights = new HashMap<String,Float>();
 	
     @Override
@@ -53,7 +55,8 @@ public class WeightPlugin extends JavaPlugin implements Listener{
     public void OnPlayerMove(PlayerMoveEvent evt) {
         Player player = evt.getPlayer(); // The player who joined
         org.bukkit.inventory.PlayerInventory inventory = player.getInventory(); // The player's inventory
-        float speed = NormalSpeed * (1- ZDiv(MaxWeight,CalculateWeight(inventory)));
+        System.out.println(CalculateWeight(inventory));
+        float speed = NormalSpeed * (ZDiv(CalculateWeight(inventory),MaxWeight)-1);
         player.setWalkSpeed(speed);
     }
     public float GetWeight(ItemStack item)
@@ -69,6 +72,7 @@ public class WeightPlugin extends JavaPlugin implements Listener{
     		Weights.put(GetTagFromItem(item), weight);
     	}
     	weight = Weights.get(GetTagFromItem(item));
+    	if(weight > Hev){Hev = weight;MaxWeight = Inventory * Hev;}
     	return weight;
     }
     public float GetWeightFromRecipe(ItemStack item)
@@ -131,6 +135,7 @@ public class WeightPlugin extends JavaPlugin implements Listener{
     	return Weight;
     }
     void SaveYAML(){
+    	System.out.println("Saving YAML");
         Yaml yaml = new Yaml();
         String output = yaml.dump(Weights);
         if(!getDataFolder().exists())
@@ -159,6 +164,7 @@ public class WeightPlugin extends JavaPlugin implements Listener{
     @SuppressWarnings("unchecked")
 	void LoadYAML()
     {
+    	System.out.println("Loading YAML");
     	if(!getDataFolder().exists())
     	{
     		this.getDataFolder().mkdirs();
@@ -175,6 +181,9 @@ public class WeightPlugin extends JavaPlugin implements Listener{
 	    	e.printStackTrace();
 	    	}
     	}
+	    for(float weight : Weights.values())
+	    {
+	    	if(weight > Hev){Hev = weight;MaxWeight = Inventory * Hev;}
+	    }
     }
-
 }
