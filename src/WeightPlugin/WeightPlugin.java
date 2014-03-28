@@ -6,10 +6,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.HashMap;
+import java.util.List;
 
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
-
+import org.bukkit.inventory.Recipe;
+import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -54,15 +57,48 @@ public class WeightPlugin extends JavaPlugin implements Listener{
         player.setWalkSpeed(speed);
         System.out.println(speed);
     }
-    public float GetWeightFromList(String tag)
+    public float GetWeight(ItemStack item)
     {
     	float weight = 1;
-    	if(!Weights.containsKey(tag))
+    	if(!Weights.containsKey(GetTagFromItem(item)))
     	{
-    		Weights.put(tag, weight);
+    		float rep = GetWeightFromRecipe(item);
+    		if(rep != -1)
+    		{
+    			weight = rep;
+    		}
+    		Weights.put(GetTagFromItem(item), weight);
     	}
-    	weight = Weights.get(tag);
+    	weight = Weights.get(GetTagFromItem(item));
     	return weight;
+    }
+    public float GetWeightFromRecipe(ItemStack item)
+    {
+    	float weight = -1;
+    	List<Recipe> recipes =  this.getServer().getRecipesFor(item);
+    	for(Recipe r : recipes)
+    	{
+    		if(weight == -1){++weight;}
+    		if(r instanceof ShapelessRecipe)
+    		{
+    			for ( ItemStack tems :((ShapelessRecipe)r).getIngredientList())
+    			{
+    				weight += GetWeight(tems) * tems.getAmount();
+    			}
+    		}
+    		if(r instanceof ShapedRecipe)
+    		{
+    			for ( ItemStack tems :((ShapedRecipe)r).getIngredientMap().values())
+    			{
+    				weight += GetWeight(tems) * tems.getAmount();
+    			}
+    		}
+    	}
+    	return weight;
+    }
+    public String GetTagFromItem(ItemStack stack)
+    {
+		return stack.getType().name();
     }
     public float CalculateWeight(PlayerInventory inventory)
     {
@@ -75,7 +111,7 @@ public class WeightPlugin extends JavaPlugin implements Listener{
 	    		{
 	    			if(armor.getItemMeta() != null)
 	    			{
-	    				Weight += GetWeightFromList(armor.getItemMeta().getDisplayName());
+	    				Weight += GetWeight(armor);
 	    			}
 	    		}
 	    	}
@@ -88,7 +124,7 @@ public class WeightPlugin extends JavaPlugin implements Listener{
 	    		{
 	    			if(item.getItemMeta() != null)
 	    			{
-	    				Weight += GetWeightFromList(item.getItemMeta().getDisplayName()) * item.getAmount();
+	    				Weight += GetWeight(item) * item.getAmount();
 	    			}
 	    		}
 	    	}
