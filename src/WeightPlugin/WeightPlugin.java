@@ -25,7 +25,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.yaml.snakeyaml.Yaml;
 
 public class WeightPlugin extends JavaPlugin implements Listener{
-	float NormalSpeed = 0.1F;
+	float NormalSpeed = 0.4;
 	float Inventory = (36 * 64) + 4;//Estimate
 	float Hev = 1;
 	float MaxWeight = Inventory * Hev;
