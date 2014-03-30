@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.bukkit.inventory.FurnaceRecipe;
 import org.bukkit.inventory.ItemStack;
@@ -15,6 +16,8 @@ import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.Material;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -25,7 +28,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.yaml.snakeyaml.Yaml;
 
 public class WeightPlugin extends JavaPlugin implements Listener{
-	float NormalSpeed = 5;
+	float NormalSpeed = 0.2F;
 	float Inventory = (36 * 64) + 4;//Estimate
 	float Hev = 1;
 	float MaxWeight = Inventory * Hev;
@@ -55,10 +58,29 @@ public class WeightPlugin extends JavaPlugin implements Listener{
     @EventHandler
     public void OnPlayerMove(PlayerMoveEvent evt) {
         Player player = evt.getPlayer(); // The player who joined
-        org.bukkit.inventory.PlayerInventory inventory = player.getInventory(); // The player's inventory
-        float speed = NormalSpeed * ZDiv(MaxWeight-(CalculateWeight(inventory)*1.0F),MaxWeight);
-        System.out.println(speed);
-        player.setWalkSpeed(Math.abs(speed));
+    	org.bukkit.inventory.PlayerInventory inventory = player.getInventory(); // The player's inventory
+        float speed = NormalSpeed * ZDiv(MaxWeight-Math.min(CalculateWeight(inventory)*1.0F,MaxWeight-0.01F),MaxWeight);
+        getLogger().log(Level.ALL,String.valueOf(speed)+ ":" + String.valueOf(CalculateWeight(inventory)*1.0F));
+        player.setWalkSpeed(Math.min(speed,1));
+    	System.out.println(String.valueOf(speed)+ ":" + String.valueOf(CalculateWeight(inventory)*1.0F));
+    }
+    
+    @Override
+    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) 
+    {
+    	if (cmd.getName().equalsIgnoreCase("Set")) 
+    	{
+    		if(args.length == 2)
+    		{
+	    		if(args[1].matches("-?\\d+"))//Regex for checking if string
+	    		{
+	    			Weights.put(args[0],Float.parseFloat(args[1]));
+	    	    	RecalculateWeights();
+	    	    	return true;
+	    		}
+    		}
+    	}
+    	return false;
     }
     public float GetWeight(ItemStack item)
     {
@@ -73,7 +95,7 @@ public class WeightPlugin extends JavaPlugin implements Listener{
     		Weights.put(GetTagFromItem(item), weight);
     	}
     	weight = Weights.get(GetTagFromItem(item)).floatValue();
-    	if(weight > Hev){Hev = weight;MaxWeight = Inventory * Hev;}
+    	//if(weight > Hev){Hev = weight;MaxWeight = Inventory * Hev;}
     	return weight;
     }
     public float GetWeightFromRecipe(ItemStack item)
@@ -132,7 +154,7 @@ public class WeightPlugin extends JavaPlugin implements Listener{
 	    		{
 	    			if(armor.getItemMeta() != null)
 	    			{
-	    				Weight += GetWeight(armor);
+	    				Weight += GetWeight(armor)*10;
 	    			}
 	    		}
 	    	}
@@ -208,7 +230,10 @@ public class WeightPlugin extends JavaPlugin implements Listener{
 	    	e.printStackTrace();
 	    	}
     	}
-		System.out.println(Weights.size());
+    	RecalculateWeights();
+    }
+    void RecalculateWeights()
+    {
     	for(int i = 0;i< Weights.size();++i)
     	{
     		String keys = (String) Weights.keySet().toArray()[i];
@@ -221,7 +246,7 @@ public class WeightPlugin extends JavaPlugin implements Listener{
 	    	{
 	    		Weights.put(keys, w);
 	    	}
-	    	if( weight> Hev){Hev = weight;MaxWeight = Inventory * Hev;}
+	    	//if( weight> Hev){Hev = weight;MaxWeight = Inventory * Hev;}
     	}
     }
 }
