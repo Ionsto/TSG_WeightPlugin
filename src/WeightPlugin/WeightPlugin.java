@@ -29,7 +29,7 @@ import org.yaml.snakeyaml.Yaml;
 
 public class WeightPlugin extends JavaPlugin implements Listener{
 	float NormalSpeed = 0.2F;
-	float Inventory = (36 * 64) + 4;//Estimate
+	float Inventory = ((36 * 64) + 4)*5;//Estimate
 	float Hev = 1;
 	float MaxWeight = Inventory * Hev;
 	HashMap<String,Float> Weights = new HashMap<String,Float>();
@@ -60,9 +60,8 @@ public class WeightPlugin extends JavaPlugin implements Listener{
         Player player = evt.getPlayer(); // The player who joined
     	org.bukkit.inventory.PlayerInventory inventory = player.getInventory(); // The player's inventory
         float speed = NormalSpeed * ZDiv(MaxWeight-Math.min(CalculateWeight(inventory)*1.0F,MaxWeight-0.01F),MaxWeight);
-        getLogger().log(Level.ALL,String.valueOf(speed)+ ":" + String.valueOf(CalculateWeight(inventory)*1.0F));
         player.setWalkSpeed(Math.min(speed,1));
-    	System.out.println(String.valueOf(speed)+ ":" + String.valueOf(CalculateWeight(inventory)*1.0F));
+    	//DEBUG System.out.println(String.valueOf(speed)+ ":" + String.valueOf(CalculateWeight(inventory)*1.0F));
     }
     
     @Override
